@@ -168,4 +168,4 @@ class Factory(ServerFactory):
         # Send Notification
         for clientToken in self.clients:
             client = self.clients[clientToken]
-            reactor.callFromThread(client.sendNotice, notification)
+            client.sendNotice(notification)

@@ -76,7 +76,7 @@ class NoticeManager(Toplevel):
 
         # Send Notification
         if self.office == None:
-            reactor.callFromThread(self.parent.factory.send_global_notice, notif)
+            self.parent.factory.send_global_notice(notif)
 
         # Destroy Window
         self.destroy()
