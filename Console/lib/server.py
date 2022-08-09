@@ -29,7 +29,7 @@ class Server(Protocol):
         }
         responseData = jsonpickle.encode(response)
         print("Sending...")
-        reactor.callFromThread(self.transport.write, responseData.encode("utf-8"))
+        self.transport.write(responseData.encode("utf-8"))
         self.transport.write(str("Tada").encode("utf-8"))
         self.console.log("Sending Notice to " + str(self._peer.host + ":" + str(self._peer.port)))
         print(responseData)
