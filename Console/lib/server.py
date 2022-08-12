@@ -12,6 +12,7 @@ class Server(Protocol):
         self.offices = offices
         self.clients = clients
         self.devices = devices
+        self.notices = []
         self.office = None
         self.token = token_hex(8)
 
@@ -28,13 +29,7 @@ class Server(Protocol):
            "payload": notifData
         }
         responseData = jsonpickle.encode(response)
-        print("Sending...")
-        self.transport.write(responseData.encode("utf-8"))
-        self.transport.write(str("Tada").encode("utf-8"))
-        self.console.log("Sending Notice to " + str(self._peer.host + ":" + str(self._peer.port)))
-        print(responseData)
-        print("Sent")
-        
+        self.notices.append(responseData)
 
     def connectionMade(self):
         self._peer = self.transport.getPeer()
@@ -91,17 +86,6 @@ class Server(Protocol):
                         }
                     responseData = jsonpickle.encode(response)
                     self.transport.write(responseData.encode("utf-8"))
-
-                    # Send Notification
-                    notif = Notification("Test", "This is second a test of the system.", token=jsonData.token)
-                    notifData = jsonpickle.encode(notif)
-                    
-                    response = {
-                        "token": jsonData.token,
-                        "payload": notifData
-                        }
-                    responseData = jsonpickle.encode(response)
-                    self.transport.write(responseData.encode("utf-8"))
                 else:
                     print("TOKEN: " + str(jsonData.token))
                     print("TOKENS: " + str(self.devices))
@@ -113,6 +97,11 @@ class Server(Protocol):
                     self.transport.write(jsonData.encode("utf-8"))
 
                     self.console.log("Sent Request.")
+            elif isinstance(jsonData, Ping):
+
+                if jsonData.pinged:
+
+                    self.console.log("Received Ping back from " + str(self._peer.host) + ":" + str(self._peer.port))
             elif isinstance(jsonData, Office):
                 self.console.log("Received Office Log...")
                 if jsonData.setup:
@@ -134,7 +123,15 @@ class Server(Protocol):
                 else:
                     # Do Something
                     pass
-                
+            if len(self.notices) > 0:
+
+                # Send Notice
+                notice = self.notices.pop()
+                responseData = jsonpickle.encode(notice)
+                self.transport.write(responseData.encode("utf-8"))
+                self.transport.write(str("Tada").encode("utf-8"))
+                self.console.log("Sending Notice to " + str(self._peer.host + ":" + str(self._peer.port)))
+                print("Sent")
                 
         except json.decoder.JSONDecodeError:
             self.console.warning("Client Sent Str not JSON Bytes [" + self.token + "]: " + data)
@@ -144,6 +141,14 @@ class Server(Protocol):
         if self.console != None:
             self.console.log("Closed Connection from Client: " + self.token)
         del self.clients[self.token]
+
+    def ping(self):
+
+        pingRequest = Ping(self.token)
+
+        pingRequestData = jsonpickle.encode(pingRequest)
+        self.transport.write(pingRequestData.encode("utf-8"))
+        self.console.log("Sending Ping to " + str(self._peer.host + ":" + str(self._peer.port)))
         
 class Factory(ServerFactory):
     def __init__(self, console, offices):
@@ -159,6 +164,20 @@ class Factory(ServerFactory):
                 print(token)
                 self.allowedDevices.append(token)
                 print(self.allowedDevices)
+
+    def ping(self):
+        print(self.clients)
+        for clientToken in self.clients:
+            client = self.clients[clientToken]
+            client.ping()
+        return
+
+    def ping_notif(self, result):
+        self.console.log("Ping sent to all connected clients.")
+
+    def ping_error(self, error):
+        print(error.getBriefTraceback())
+        reactor.stop()
     
     def buildProtocol(self, addr):
         return Server(self.console, self.offices, self.clients, self.allowedDevices)

@@ -31,6 +31,20 @@ class Notification:
     def update_token(self, token):
         self.recepient_token = token
 
+class Ping:
+
+    def __init__(self, token=None):
+
+        self.token = token
+        self.pinged = False
+
+    def verify(self, token):
+        return self.token == token
+
+    def reply(self):
+
+        self.pinged = True
+
 class Office:
 
     def __init__(self):

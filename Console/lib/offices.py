@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import ttk
-from twisted.internet import tksupport, reactor
+from twisted.internet import tksupport, reactor, threads
+from tkinter import simpledialog
 
 from .data import *
 
@@ -29,7 +30,16 @@ class OfficeManager(Frame):
 
     def new_global_notice(self, *args):
 
-        nm = NoticeManager(self.parent)
+        try:
+            message = simpledialog.askstring(title="Send Global Notice", prompt="What would you like to say?")
+        finally:
+            # Submit Notification to Server
+            title = "Notice for All Offices - Reception Desk"
+
+            # Notification Setup
+            notif = Notification(title, message)
+
+            self.parent.factory.send_global_notice(notif)
         
 
 class NoticeManager(Toplevel):
@@ -43,7 +53,7 @@ class NoticeManager(Toplevel):
         self.office = office
 
         # Window Setup
-        tksupport.install(self)
+        #tksupport.install(self)
         if office == None:
             self.title("Send Notice - All Offices")
         else:
@@ -65,6 +75,12 @@ class NoticeManager(Toplevel):
         # Window Loop
         self.mainloop()
 
+    def send(self, notif):
+
+        # Send Notification
+        if self.office == None:
+            self.parent.factory.send_global_notice(notif)
+
     def submit(self, *args):
 
         # Submit Notification to Server
@@ -74,9 +90,7 @@ class NoticeManager(Toplevel):
         # Notification Setup
         notif = Notification(title, message)
 
-        # Send Notification
-        if self.office == None:
-            self.parent.factory.send_global_notice(notif)
-
+        reactor.callInThread(self.send, notif)
+        
         # Destroy Window
         self.destroy()

@@ -45,6 +45,13 @@ class Client(Protocol):
                     request = ConnectionOperator(token=jsonData.token)
                     jsonData = jsonpickle.encode(request)
                     self.transport.write(jsonData.encode("utf-8"))
+        elif isinstance(jsonData, Ping):
+
+            ping = jsonData
+            ping.reply()
+
+            pingData = jsonpickle.encode(ping)
+            self.transport.write(pingData.encode("utf-8"))
         elif isinstance(jsonData, dict):
 
             # Verify Correct Token

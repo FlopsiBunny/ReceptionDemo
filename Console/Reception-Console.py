@@ -7,7 +7,7 @@ from lib.console import Console
 from lib.offices import OfficeManager
 from lib.server import *
 
-from twisted.internet import tksupport, reactor
+from twisted.internet import tksupport, reactor, task
 from configparser import ConfigParser
 
 class ReceptionConsole(Tk):
@@ -83,11 +83,22 @@ class ReceptionConsole(Tk):
 
     def start_server(self):
         if not reactor.running:
+
+            # Server Socket Setup
             self.console.log("Starting server...")
             self.factory = Factory(self.console, self.offices)
             self.factory.protocol = Server
+
+            # Ping Loop Setup
+            self.pingLoop = task.LoopingCall(self.factory.ping)
+            self.pingLoopDeferred = self.pingLoop.start(5)
+            self.pingLoopDeferred.addCallback(self.factory.ping_notif)
+            self.pingLoopDeferred.addErrback(self.factory.ping_error)
+
+            # Bind Socket to Server Address & Port
             reactor.listenSSL(9800, self.factory, ssl.DefaultOpenSSLContextFactory("keys/server.key", "keys/server.crt"))
             self.console.log("Listening on 0.0.0.0:9800...")
+            
             reactor.run()
         else:
             messagebox.showinfo("Start Server", "The server is already running.")

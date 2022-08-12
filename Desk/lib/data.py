@@ -28,6 +28,23 @@ class Notification:
         if token == self.recepient_token or self.recepient_token == None:
             messagebox.showinfo(self.title, self.message)
 
+    def update_token(self, token):
+        self.recepient_token = token
+
+class Ping:
+
+    def __init__(self, token=None):
+
+        self.token = token
+        self.pinged = False
+
+    def verify(self, token):
+        return self.token == token
+
+    def reply(self):
+
+        self.pinged = True
+
 class Office:
 
     def __init__(self):
